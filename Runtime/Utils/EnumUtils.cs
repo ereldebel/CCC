@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CRL.Utils
+namespace CCC.Runtime.Utils
 {
     public static class EnumUtils
     {

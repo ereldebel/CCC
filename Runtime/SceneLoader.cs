@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using CRL.Utils;
+using CCC.Runtime.Utils;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace CRL
+namespace CCC.Runtime
 {
     public class SceneLoader : MonoBehaviour
     {
@@ -13,13 +13,13 @@ namespace CRL
 
         [SerializeField] private SceneEntry[] scenes;
         [SerializeField] private float sceneSwitchFadeDuration = 2;
+        [SerializeField] private CanvasGroup transitionScreen;
 
         #endregion
 
         #region Non-Serialized Fields
 
         private readonly ActiveScenes _activeScenes = new();
-        private CanvasGroup _transitionScreen;
 
         #endregion
 
@@ -50,7 +50,7 @@ namespace CRL
 
         public void LoadScene(SceneEntry scene)
         {
-            SceneManager.LoadSceneAsync(scene.BuildIndex, LoadSceneMode.Additive);
+            SceneManager.LoadSceneAsync(scene.sceneName, LoadSceneMode.Additive);
             _activeScenes[scene.type].Add(scene);
         }
 
@@ -58,7 +58,7 @@ namespace CRL
 
         public void UnloadScene(SceneEntry scene)
         {
-            SceneManager.UnloadSceneAsync(scene.scene);
+            SceneManager.UnloadSceneAsync(scene.sceneName);
             _activeScenes[scene.type].Remove(scene);
         }
 
@@ -67,7 +67,7 @@ namespace CRL
             var sceneEntries = _activeScenes[SceneType.Dynamic];
             foreach (var scene in sceneEntries)
             {
-                SceneManager.UnloadSceneAsync(scene.scene);
+                SceneManager.UnloadSceneAsync(scene.sceneName);
             }
 
             sceneEntries.Clear();
@@ -79,15 +79,15 @@ namespace CRL
         
         private IEnumerator SwitchSceneCoroutine(SceneEntry newScene, SceneEntry specificSceneToUnload = null)
         {
-            yield return Coroutines.Interpolate(t => _transitionScreen.alpha = t, sceneSwitchFadeDuration);
+            yield return Coroutines.Interpolate(t => transitionScreen.alpha = t, sceneSwitchFadeDuration);
             if (specificSceneToUnload == null)
                 UnloadDynamicScenes();
             else
                 UnloadScene(newScene);
-            var op = SceneManager.LoadSceneAsync(newScene.BuildIndex, LoadSceneMode.Additive);
+            var op = SceneManager.LoadSceneAsync(newScene.sceneName, LoadSceneMode.Additive);
             while (!op.isDone)
                 yield return null;
-            yield return Coroutines.Interpolate(t => _transitionScreen.alpha = 1-t, sceneSwitchFadeDuration);
+            yield return Coroutines.Interpolate(t => transitionScreen.alpha = 1-t, sceneSwitchFadeDuration);
             _activeScenes[newScene.type].Add(newScene);
         }
 
@@ -113,11 +113,9 @@ namespace CRL
         [Serializable]
         public class SceneEntry
         {
-            [SerializeField] public Scene scene;
+            [SerializeField] public string sceneName;
             [SerializeField] public SceneType type;
             [SerializeField] public bool loadOnStart;
-
-            public int BuildIndex => scene.buildIndex;
         }
 
         public enum SceneType : ushort

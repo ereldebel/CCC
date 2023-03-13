@@ -2,7 +2,7 @@
 using System.Collections;
 using UnityEngine;
 
-namespace CRL
+namespace CCC.Runtime
 {
     public static class Coroutines
     {
