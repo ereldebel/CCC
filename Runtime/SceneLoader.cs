@@ -29,8 +29,14 @@ namespace CCC.Runtime
         {
             foreach (var scene in scenes)
             {
-                if (scene.loadOnStart)
+                if (IsSceneLoaded(scene))
+                {
+                    _activeScenes.Add(scene);
+                }
+                else if (scene.loadOnStart)
+                {
                     LoadScene(scene);
+                }
             }
         }
 
@@ -51,7 +57,7 @@ namespace CCC.Runtime
         public void LoadScene(SceneEntry scene)
         {
             SceneManager.LoadSceneAsync(scene.sceneName, LoadSceneMode.Additive);
-            _activeScenes[scene.type].Add(scene);
+            _activeScenes.Add(scene);
         }
 
         public void UnloadScene(int sceneEntryIndex) => UnloadScene(scenes[sceneEntryIndex]);
@@ -59,7 +65,7 @@ namespace CCC.Runtime
         public void UnloadScene(SceneEntry scene)
         {
             SceneManager.UnloadSceneAsync(scene.sceneName);
-            _activeScenes[scene.type].Remove(scene);
+            _activeScenes.Remove(scene);
         }
 
         public void UnloadDynamicScenes()
@@ -76,6 +82,18 @@ namespace CCC.Runtime
         #endregion
 
         #region Private Methods
+
+        private bool IsSceneLoaded(SceneEntry scene)
+        {
+            var numOfLoadedScenes = SceneManager.sceneCount;
+            for (int i = 0; i < numOfLoadedScenes; ++i)
+            {
+                if (SceneManager.GetSceneAt(i).name == scene.sceneName)
+                    return true;
+            }
+
+            return false;
+        }
         
         private IEnumerator SwitchSceneCoroutine(SceneEntry newScene, SceneEntry specificSceneToUnload = null)
         {
@@ -88,7 +106,7 @@ namespace CCC.Runtime
             while (!op.isDone)
                 yield return null;
             yield return Coroutines.Interpolate(t => transitionScreen.alpha = 1-t, sceneSwitchFadeDuration);
-            _activeScenes[newScene.type].Add(newScene);
+            _activeScenes.Add(newScene);
         }
 
         #endregion
@@ -100,6 +118,9 @@ namespace CCC.Runtime
             private readonly HashSet<SceneEntry>[] _scenes;
 
             public HashSet<SceneEntry> this[SceneType type] => _scenes[(ushort)type];
+
+            internal void Add(SceneEntry scene) => this[scene.type].Add(scene);
+            internal void Remove(SceneEntry scene) => this[scene.type].Remove(scene);
 
             internal ActiveScenes()
             {
