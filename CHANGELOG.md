@@ -31,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [//]: # ()
 [//]: # (- )
 
+## [1.4.0] - 2023-05-10
+
+### Added
+
+- Add SceneLoader.GetActiveScenes method.
+- Add PureAttribute to functions in Utils classes.
+
 ## [1.3.0] - 2023-05-04
 
 ### Added

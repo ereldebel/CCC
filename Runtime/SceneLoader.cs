@@ -44,6 +44,11 @@ namespace CCC.Runtime
 		#endregion
 
 		#region Public Methods
+		
+		public IReadOnlyCollection<SceneEntry> GetActiveScenes(SceneType type)
+		{
+			return _activeScenes[SceneType.Dynamic];
+		}
 
 		public void SwitchScene(int sceneEntryIndex, SceneEntry specificSceneToUnload = null,
 			Action switchEndAction = null) =>
