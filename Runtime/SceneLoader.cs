@@ -44,24 +44,46 @@ namespace CCC.Runtime
 		#endregion
 
 		#region Public Methods
-		
+
+		/// <summary>
+		/// Gets all active scenes of requested type.
+		/// </summary>
 		public IReadOnlyCollection<SceneEntry> GetActiveScenes(SceneType type)
 		{
-			return _activeScenes[SceneType.Dynamic];
+			return _activeScenes[type];
 		}
 
+		/// <summary>
+		/// Unloads all dynamic scenes, reloads ConstantReload scenes and loads the given scene.
+		/// </summary>
+		/// <param name="sceneEntryIndex">The index of the SceneEntry in the SceneLoader.</param>
+		/// <param name="specificSceneToUnload">Optional: a non-dynamic scene to unload.</param>
+		/// <param name="switchEndAction">Optional: an action to perform once the Switch ends.</param>
 		public void SwitchScene(int sceneEntryIndex, SceneEntry specificSceneToUnload = null,
 			Action switchEndAction = null) =>
 			SwitchScene(scenes[sceneEntryIndex], specificSceneToUnload, switchEndAction);
 
+		/// <summary>
+		/// Unloads all dynamic scenes, reloads ConstantReload scenes and loads the given scene.
+		/// </summary>
+		/// <param name="scene">Scene to load</param>
+		/// <param name="specificSceneToUnload">Optional: a non-dynamic scene to unload.</param>
+		/// <param name="switchEndAction">Optional: an action to perform once the Switch ends.</param>
 		public void SwitchScene(SceneEntry scene, SceneEntry specificSceneToUnload = null,
 			Action switchEndAction = null)
 		{
 			StartCoroutine(SwitchSceneCoroutine(scene, specificSceneToUnload, switchEndAction));
 		}
 
+		/// <summary>
+		/// Loads the given scene additively.
+		/// </summary>
+		/// <param name="sceneEntryIndex">The index of the SceneEntry in the SceneLoader.</param>
 		public void LoadScene(int sceneEntryIndex) => LoadScene(scenes[sceneEntryIndex]);
 
+		/// <summary>
+		/// Loads the given scene additively.
+		/// </summary>
 		public void LoadScene(SceneEntry scene)
 		{
 			SceneManager.LoadSceneAsync(scene.sceneName, LoadSceneMode.Additive);
@@ -70,12 +92,18 @@ namespace CCC.Runtime
 
 		public void UnloadScene(int sceneEntryIndex) => UnloadScene(scenes[sceneEntryIndex]);
 
+		/// <summary>
+		/// Unloads the given scene.
+		/// </summary>
 		public void UnloadScene(SceneEntry scene)
 		{
 			SceneManager.UnloadSceneAsync(scene.sceneName);
 			_activeScenes.Remove(scene);
 		}
 
+		/// <summary>
+		/// Unloads active all dynamic scenes.
+		/// </summary>
 		public void UnloadDynamicScenes()
 		{
 			var sceneEntries = _activeScenes[SceneType.Dynamic];
@@ -155,6 +183,9 @@ namespace CCC.Runtime
 		{
 			private readonly HashSet<SceneEntry>[] _scenes;
 
+			/// <summary>
+			/// Get a HashSet of all active scenes by type;
+			/// </summary>
 			public HashSet<SceneEntry> this[SceneType type] => _scenes[(ushort)type];
 
 			internal void Add(SceneEntry scene) => this[scene.type].Add(scene);
@@ -172,30 +203,41 @@ namespace CCC.Runtime
 		[Serializable]
 		public class SceneEntry
 		{
+			/// <summary>
+			/// The name of the scene.
+			/// </summary>
 			[SerializeField] public string sceneName;
+
+			/// <summary>
+			/// The type of the scene.
+			/// </summary>
 			[SerializeField] public SceneType type;
+
+			/// <summary>
+			/// Should this scene be loaded on SceneLoader's Awake.
+			/// </summary>
 			[SerializeField] public bool loadOnStart;
 		}
 
 		public enum SceneType : ushort
 		{
 			/// <summary>
-			/// The SceneLoader's scene
+			/// The SceneLoader's scene.
 			/// </summary>
 			SceneLoader = 0,
 
 			/// <summary>
-			/// A scene that stays loaded unless unloaded explicitly
+			/// A scene that stays loaded unless unloaded explicitly.
 			/// </summary>
 			Constant = 1,
 
 			/// <summary>
-			/// A scene that is only temporarily loaded
+			/// A scene that is only temporarily loaded.
 			/// </summary>
 			Dynamic = 2,
 
 			/// <summary>
-			/// A scene that is reloaded on each scene switch
+			/// A scene that is reloaded on each scene switch.
 			/// </summary>
 			ConstantReload = 3,
 		}

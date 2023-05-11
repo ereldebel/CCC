@@ -4,6 +4,9 @@ namespace CCC.Runtime
 {
 	public static class GizmosExt
 	{
+		/// <summary>
+		/// Draws a wireframe capsule with between a and b with the given radius.
+		/// </summary>
 		public static void DrawWireCapsule(Vector3 a, Vector3 b, float radius)
 		{
 			Gizmos.DrawWireSphere(a, radius);

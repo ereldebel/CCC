@@ -31,6 +31,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [//]: # ()
 [//]: # (- )
 
+## [1.5.0] - 2023-05-11
+
+### Added
+
+- Add Vector3Utils.ToVector3XZ function.
+- Add documentation.
+
+### Fixed
+
+- Fix SceneLoader.GetActiveScenes to use the given type.
+- Fix Vector3IntUtils's L1Norm and L1Distance functions calculation.
+
 ## [1.4.0] - 2023-05-10
 
 ### Added
