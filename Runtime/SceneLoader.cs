@@ -12,7 +12,8 @@ namespace CCC.Runtime
 	{
 		#region Serialized Fields
 
-		[SerializeField] private SceneEntry[] scenes;
+		[field: SerializeField] public SceneEntry[] Scenes { get; private set; }
+		
 		[SerializeField] private float sceneSwitchFadeDuration = 2;
 		[SerializeField] private CanvasGroup transitionScreen;
 
@@ -28,7 +29,7 @@ namespace CCC.Runtime
 
 		private void Awake()
 		{
-			foreach (var scene in scenes)
+			foreach (var scene in Scenes)
 			{
 				if (IsSceneLoaded(scene))
 				{
@@ -61,7 +62,7 @@ namespace CCC.Runtime
 		/// <param name="switchEndAction">Optional: an action to perform once the Switch ends.</param>
 		public void SwitchScene(int sceneEntryIndex, SceneEntry specificSceneToUnload = null,
 			Action switchEndAction = null) =>
-			SwitchScene(scenes[sceneEntryIndex], specificSceneToUnload, switchEndAction);
+			SwitchScene(Scenes[sceneEntryIndex], specificSceneToUnload, switchEndAction);
 
 		/// <summary>
 		/// Unloads all dynamic scenes, reloads ConstantReload scenes and loads the given scene.
@@ -79,7 +80,7 @@ namespace CCC.Runtime
 		/// Loads the given scene additively.
 		/// </summary>
 		/// <param name="sceneEntryIndex">The index of the SceneEntry in the SceneLoader.</param>
-		public void LoadScene(int sceneEntryIndex) => LoadScene(scenes[sceneEntryIndex]);
+		public void LoadScene(int sceneEntryIndex) => LoadScene(Scenes[sceneEntryIndex]);
 
 		/// <summary>
 		/// Loads the given scene additively.
@@ -90,7 +91,7 @@ namespace CCC.Runtime
 			_activeScenes.Add(scene);
 		}
 
-		public void UnloadScene(int sceneEntryIndex) => UnloadScene(scenes[sceneEntryIndex]);
+		public void UnloadScene(int sceneEntryIndex) => UnloadScene(Scenes[sceneEntryIndex]);
 
 		/// <summary>
 		/// Unloads the given scene.
