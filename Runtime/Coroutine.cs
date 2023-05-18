@@ -7,7 +7,7 @@ namespace CCC.Runtime
     public static class Coroutines
     {
         /// <summary>
-        /// A coroutine that passes the interpolated values (0,1) to the given interpolator in the given duration.
+        /// A coroutine that passes the interpolated values [0,1] to the interpolator through the given duration.
         /// </summary>
         public static IEnumerator Interpolate(Action<float> interpolator, float duration)
         {
@@ -16,6 +16,23 @@ namespace CCC.Runtime
             while ((t = (Time.time - startTime) / duration) < 1)
             {
                 interpolator.Invoke(t);
+                yield return null;
+            }
+            interpolator.Invoke(1);
+        }
+        
+        /// <summary>
+        /// A coroutine that passes the interpolated values [0,1] to the interpolator through the given duration
+        /// or until the interpolator returns false.
+        /// </summary>
+        public static IEnumerator Interpolate(Func<float, bool> interpolator, float duration)
+        {
+            float startTime = Time.time;
+            float t;
+            while ((t = (Time.time - startTime) / duration) < 1)
+            {
+                if (!interpolator.Invoke(t))
+                    yield break;
                 yield return null;
             }
             interpolator.Invoke(1);
