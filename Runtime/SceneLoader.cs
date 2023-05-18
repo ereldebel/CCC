@@ -139,7 +139,7 @@ namespace CCC.Runtime
 			if (specificSceneToUnload == null)
 				UnloadDynamicScenes();
 			else
-				UnloadScene(newScene);
+				UnloadScene(specificSceneToUnload);
 			if (_activeScenes[SceneType.ConstantReload].Count > 0)
 				yield return ReloadScenes();
 			yield return PerformSingleAsyncOperation(SceneManager.LoadSceneAsync(newScene.sceneName,
