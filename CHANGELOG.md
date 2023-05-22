@@ -31,6 +31,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [//]: # ()
 [//]: # (- )
 
+## [2.0.0] - 2023-05-22
+
+### Added
+
+- Coroutines:
+  - Add Interpolate overload that is able to break mid-interpolation.
+  - Add InterpolateUnscaleTime methods that use unscaled time instead of scaled time.
+- SceneLoader:
+  - Add public getter to Scenes array.
+  - Add Reset method that unloads all but SceneLoader scene and reloads loadOnStart scenes.
+  - Add SceneLoader.SwitchScene method that gets a collection of scenes to load.
+  - Add SceneLoader.UnloadScenes method.
+
+### Fixed
+
+- Fix Vector3Utils.ToVector3XZ return type.
+- Fix SceneLoader.SwitchScene's specific scenes unloading.
+
+### Changed
+
+- SceneLoader:
+  - Change SwitchScene API to get a collection of scenes to unload instead of a single scene.
+  - Changed SwitchScene coroutine to use unscaled time.
+
 ## [1.5.0] - 2023-05-11
 
 ### Added
