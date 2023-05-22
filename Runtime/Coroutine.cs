@@ -8,6 +8,39 @@ namespace CCC.Runtime
     {
         /// <summary>
         /// A coroutine that passes the interpolated values [0,1] to the interpolator through the given duration.
+        /// Uses unscaled time.
+        /// </summary>
+        public static IEnumerator InterpolateUnscaledTime(Action<float> interpolator, float duration)
+        {
+            float startTime = Time.unscaledTime;
+            float t;
+            while ((t = (Time.unscaledTime - startTime) / duration) < 1)
+            {
+                interpolator.Invoke(t);
+                yield return null;
+            }
+            interpolator.Invoke(1);
+        }
+        
+        /// <summary>
+        /// A coroutine that passes the interpolated values [0,1] to the interpolator through the given duration
+        /// or until the interpolator returns false. Uses unscaled time.
+        /// </summary>
+        public static IEnumerator InterpolateUnscaledTime(Func<float, bool> interpolator, float duration)
+        {
+            float startTime = Time.unscaledTime;
+            float t;
+            while ((t = (Time.unscaledTime - startTime) / duration) < 1)
+            {
+                if (!interpolator.Invoke(t))
+                    yield break;
+                yield return null;
+            }
+            interpolator.Invoke(1);
+        }
+        
+        /// <summary>
+        /// A coroutine that passes the interpolated values [0,1] to the interpolator through the given duration.
         /// </summary>
         public static IEnumerator Interpolate(Action<float> interpolator, float duration)
         {
