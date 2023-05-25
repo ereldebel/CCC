@@ -29,13 +29,26 @@ namespace CCC.Runtime
 
 		#region Event Functions
 
+		/// <summary>
+		/// If the SceneLoader scene is the only loaded scene, loads all loadOnStart scenes.
+		/// Otherwise, only adds the loaded scenes into the active scenes data structure.  
+		/// </summary>
 		private void Awake()
 		{
+			var blankSlate = true;
 			foreach (var scene in Scenes)
 			{
-				if (IsSceneLoaded(scene))
-					_activeScenes.Add(scene);
-				else if (scene.loadOnStart)
+				if (!IsSceneLoaded(scene)) continue;
+				_activeScenes.Add(scene);
+				if (scene.type != SceneType.SceneLoader)
+					blankSlate = false;
+			}
+
+			if (!blankSlate)
+				return;
+			foreach (var scene in Scenes)
+			{
+				if (scene.loadOnStart && scene.type != SceneType.SceneLoader)
 					LoadScene(scene);
 			}
 		}
