@@ -52,6 +52,11 @@ namespace CCC.Runtime
 			InputSystem.onDeviceChange += OnUserChange;
 		}
 
+		private void Start()
+		{
+			CurrentDeviceType = GetDeviceType();
+		}
+
 		private void OnDestroy()
 		{
 			InputSystem.onDeviceChange -= OnUserChange;
