@@ -1,7 +1,6 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Users;
 using UnityEngine.InputSystem.XInput;
 using UnityEngine.InputSystem.DualShock;
 
@@ -9,6 +8,14 @@ namespace CCC.Runtime
 {
 	public class InputManager : MonoBehaviour
 	{
+		#region Serialized Properties
+
+		[field: SerializeField] public string xBoxSpriteAsset = "Textures/Xbox Buttons";
+		[field: SerializeField] public string dualShockSpriteAsset = "Textures/DualShock Buttons";
+		[field: SerializeField] public string keyboardSpriteAsset = "Textures/Keyboard Buttons";
+		
+		#endregion
+		
 		#region Private Fields
 
 		private DeviceType _deviceType = DeviceType.Keyboard;
@@ -19,7 +26,13 @@ namespace CCC.Runtime
 
 		public DeviceType CurrentDeviceType
 		{
-			get => _deviceType;
+			get
+			{
+				var currDevice = GetDeviceType();
+				if (_deviceType != currDevice)
+					CurrentDeviceType = currDevice;
+				return currDevice;
+			}
 			private set
 			{
 				if (_deviceType == value) return;
@@ -47,7 +60,7 @@ namespace CCC.Runtime
 		private void Awake()
 		{
 			if (Instance != null)
-				throw new Exception("Multiple GameManager instances");
+				throw new Exception("Multiple InputManager instances");
 			Instance = this;
 			InputSystem.onDeviceChange += OnUserChange;
 		}
@@ -71,9 +84,11 @@ namespace CCC.Runtime
 			switch (change)
 			{
 				case InputDeviceChange.Added:
-				case InputDeviceChange.Removed:
 					CurrentDeviceType = GetDeviceType();
 					break;
+				case InputDeviceChange.Removed:
+					CurrentDeviceType = GetDeviceType();
+					goto case InputDeviceChange.Disconnected;
 				case InputDeviceChange.Disconnected:
 					DeviceDisconnected?.Invoke();
 					break;
