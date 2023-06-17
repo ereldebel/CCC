@@ -13,9 +13,11 @@ namespace CCC.Runtime
 		#region Serialized Fields
 
 		[field: SerializeField] public SceneEntry[] Scenes { get; private set; }
+		
+		[field: SerializeField] public UIGroup TransitionScreen { get; set; }
 
 		[SerializeField] private float sceneSwitchFadeDuration = 2;
-		[SerializeField] private CanvasGroup transitionScreen;
+		[SerializeField] private float minLoadTime = 1.5f;
 
 		#endregion
 
@@ -27,6 +29,13 @@ namespace CCC.Runtime
 
 		#endregion
 
+		#region Properties
+
+		public Action<float> EntryTransition { get; set; }
+		public Action<float> ExitTransition { get; set; }
+
+		#endregion
+
 		#region Event Functions
 
 		/// <summary>
@@ -35,6 +44,9 @@ namespace CCC.Runtime
 		/// </summary>
 		private void Awake()
 		{
+			EntryTransition ??= t => TransitionScreen.Opacity = t;
+			ExitTransition ??= t => TransitionScreen.Opacity = 1 - t;
+
 			var blankSlate = true;
 			foreach (var scene in Scenes)
 			{
@@ -55,16 +67,18 @@ namespace CCC.Runtime
 
 		#endregion
 
+
 		#region Public Methods
 
 		/// <summary>
 		/// Unloads all but the SceneLoader scene and reloads all scenes marked to load on start.
 		/// </summary>
-		public void Reset()
+		public void Reset(Action endAction = null)
 		{
 			var scenesToUnload = _activeScenes[SceneMask.InverseMask(SceneType.ConstantReload)].ToList();
 			var scenesToLoad = Scenes.Where(scene => scene.loadOnStart && !IsSceneLoaded(scene)).ToList();
 			SwitchScene(scenesToLoad, scenesToUnload);
+			endAction?.Invoke();
 		}
 
 		/// <summary>
@@ -178,10 +192,10 @@ namespace CCC.Runtime
 		}
 
 		private IEnumerator SwitchSceneCoroutine(IReadOnlyCollection<SceneEntry> newScenes,
-			IReadOnlyCollection<SceneEntry> specificScenesToUnload = null,
-			Action switchEndAction = null)
+			IReadOnlyCollection<SceneEntry> specificScenesToUnload = null, Action switchEndAction = null)
 		{
-			yield return Coroutines.InterpolateUnscaledTime(t => transitionScreen.alpha = t, sceneSwitchFadeDuration);
+			yield return Coroutines.InterpolateUnscaledTime(EntryTransition, sceneSwitchFadeDuration);
+			var startTime = Time.time;
 			if (specificScenesToUnload != null)
 				yield return UnloadScenes(specificScenesToUnload);
 			else
@@ -189,7 +203,10 @@ namespace CCC.Runtime
 			if (_activeScenes[SceneType.ConstantReload].Count > 0)
 				yield return ReloadScenes();
 			yield return LoadScenes(newScenes);
-			yield return Coroutines.InterpolateUnscaledTime(t => transitionScreen.alpha = 1 - t, sceneSwitchFadeDuration);
+			var remainingTime = startTime + minLoadTime - Time.time;
+			if (remainingTime > 0)
+				yield return new WaitForSeconds(remainingTime);
+			yield return Coroutines.InterpolateUnscaledTime(ExitTransition, sceneSwitchFadeDuration);
 			switchEndAction?.Invoke();
 		}
 
