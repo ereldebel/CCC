@@ -13,16 +13,23 @@ namespace CCC.Runtime
 		[field: SerializeField] public string xBoxSpriteAsset = "Textures/Xbox Buttons";
 		[field: SerializeField] public string dualShockSpriteAsset = "Textures/DualShock Buttons";
 		[field: SerializeField] public string keyboardSpriteAsset = "Textures/Keyboard Buttons";
-		
+
 		#endregion
-		
+
 		#region Private Fields
 
 		private DeviceType _deviceType = DeviceType.Keyboard;
+		private Haptics _haptics;
 
 		#endregion
-		
+
 		#region Properties
+
+		public Haptics Haptics
+		{
+			get => _haptics ??= new Haptics(this);
+			set => _haptics = value;
+		}
 
 		public DeviceType CurrentDeviceType
 		{
@@ -39,9 +46,9 @@ namespace CCC.Runtime
 				DeviceTypeChanged?.Invoke(_deviceType = value);
 			}
 		}
-		
+
 		#endregion
-		
+
 		#region Singleton Implementation
 
 		public static InputManager Instance { get; private set; }
@@ -68,11 +75,13 @@ namespace CCC.Runtime
 		private void Start()
 		{
 			CurrentDeviceType = GetDeviceType();
+			Haptics = new Haptics(this);
 		}
 
 		private void OnDestroy()
 		{
 			InputSystem.onDeviceChange -= OnUserChange;
+			Haptics?.Dispose();
 		}
 
 		#endregion
@@ -115,7 +124,6 @@ namespace CCC.Runtime
 			XboxController,
 			Keyboard,
 		}
-
 		#endregion
 	}
 }
