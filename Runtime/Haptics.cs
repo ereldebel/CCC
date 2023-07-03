@@ -14,6 +14,7 @@ namespace CCC.Runtime
 		private bool _paused;
 		private readonly InputManager _inputManager;
 		private Frequencies _hapticsFrequencies;
+		private float _intensity = 1;
 
 		private readonly Dictionary<HapticsReference, Coroutine> _runningHaptics = new();
 
@@ -21,13 +22,23 @@ namespace CCC.Runtime
 
 		#region Properties
 
+		public float Intensity
+		{
+			get => _intensity;
+			set
+			{
+				_intensity = Mathf.Clamp(value, 0, 2);
+				HapticsFrequencies = HapticsFrequencies;
+			}
+		}
+
 		private Frequencies HapticsFrequencies
 		{
 			get => _hapticsFrequencies;
 			set
 			{
 				_hapticsFrequencies = value;
-				Gamepad.current?.SetMotorSpeeds(value.Low, value.High);
+				Gamepad.current?.SetMotorSpeeds(value.Low * Intensity, value.High * Intensity);
 			}
 		}
 
@@ -53,7 +64,7 @@ namespace CCC.Runtime
 				ResumeAllHaptics();
 		}
 
-		public void StartHaptics(HapticsReference hapticsReference)
+		public void StartHaptics(HapticsReference hapticsReference, bool worksOnPause = false)
 		{
 			bool alreadyRunning = _runningHaptics.ContainsKey(hapticsReference);
 			Coroutine timedCoroutine = null;
@@ -61,14 +72,14 @@ namespace CCC.Runtime
 			{
 				if (alreadyRunning && _runningHaptics[hapticsReference] != null)
 					_inputManager.StopCoroutine(_runningHaptics[hapticsReference]);
-				timedCoroutine = _inputManager.StartCoroutine(TimedHapticsStop(hapticsReference));
+				timedCoroutine = _inputManager.StartCoroutine(TimedHapticsStop(hapticsReference, worksOnPause));
 			}
 			else if (alreadyRunning)
 			{
 				return;
 			}
 
-			if (!_paused)
+			if (!_paused || worksOnPause)
 				HapticsFrequencies = Frequencies.Max(HapticsFrequencies, hapticsReference.Frequencies);
 			_runningHaptics[hapticsReference] = timedCoroutine;
 		}
@@ -98,6 +109,8 @@ namespace CCC.Runtime
 		public void Dispose()
 		{
 			_inputManager.DeviceTypeChanged -= DeviceChanged;
+			foreach (var gamepad in Gamepad.all)
+				gamepad.SetMotorSpeeds(0,0);
 		}
 
 		#endregion
@@ -115,9 +128,12 @@ namespace CCC.Runtime
 			HapticsFrequencies = Frequencies.Max(_runningHaptics.Select(e => e.Key.Frequencies));
 		}
 
-		private IEnumerator TimedHapticsStop(HapticsReference hapticsReference)
+		private IEnumerator TimedHapticsStop(HapticsReference hapticsReference, bool worksOnPause = false)
 		{
-			yield return new WaitForSeconds(hapticsReference.Duration);
+			if (worksOnPause)
+				yield return new WaitForSecondsRealtime(hapticsReference.Duration);
+			else
+				yield return new WaitForSeconds(hapticsReference.Duration);
 			StopHaptics(hapticsReference);
 		}
 
@@ -134,7 +150,7 @@ namespace CCC.Runtime
 			[field: SerializeField] [field: Range(0, float.PositiveInfinity)]
 			public float Duration { get; private set; }
 
-			public HapticsReference(float high, float low, float duration = float.NaN)
+			public HapticsReference(float high, float low, float duration = float.PositiveInfinity)
 			{
 				Frequencies = new Frequencies(high, low);
 				Duration = duration;
