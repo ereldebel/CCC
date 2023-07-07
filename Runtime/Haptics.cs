@@ -55,6 +55,12 @@ namespace CCC.Runtime
 		#endregion
 
 		#region Public Methods
+		
+		public void Reset()
+		{
+			_runningHaptics.Clear();
+			HapticsFrequencies = Frequencies.Zero;
+		}
 
 		public void Paused(bool paused)
 		{
@@ -99,7 +105,10 @@ namespace CCC.Runtime
 		public void StopHaptics(HapticsReference hapticsReference)
 		{
 			_runningHaptics.Remove(hapticsReference);
-			SetToCurrentMaxFrequency();
+			if (_paused)
+				HapticsFrequencies = Frequencies.Zero;
+			else
+				SetToCurrentMaxFrequency();
 		}
 
 		#endregion
