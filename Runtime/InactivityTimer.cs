@@ -1,6 +1,8 @@
 ﻿using System;
-using System.Collections;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
+using CCC.Runtime.Utils;
 
 namespace CCC.Runtime
 {
@@ -17,7 +19,7 @@ namespace CCC.Runtime
 		#region Private Fields
 
 		private float _lastUsedTime = 0;
-		private Coroutine _coroutine;
+		private CancellationTokenSource _cancellationTokenSource;
 
 		#endregion
 
@@ -32,9 +34,14 @@ namespace CCC.Runtime
 		private void OnEnable()
 		{
 			_lastUsedTime = Time.time;
-			if (_coroutine != null)
-				StopCoroutine(_coroutine);
-			_coroutine = StartCoroutine(RunTimer());
+			StopTimer();
+			_cancellationTokenSource = new CancellationTokenSource();
+			RunTimerAsync(_cancellationTokenSource.Token).Forget();
+		}
+
+		private void OnDisable()
+		{
+			StopTimer();
 		}
 
 		#endregion
@@ -50,14 +57,30 @@ namespace CCC.Runtime
 
 		#region Private Methods
 
-		private IEnumerator RunTimer()
+		private void StopTimer()
 		{
-			float timeLeft;
-			while ((timeLeft = (_lastUsedTime + TimeBeforeAction) - Time.time) > 0)
-				yield return new WaitForSecondsRealtime(timeLeft);
-			InactivityAction();
-			_coroutine = null;
-			enabled = false;
+			_cancellationTokenSource?.Cancel();
+			_cancellationTokenSource?.Dispose();
+			_cancellationTokenSource = null;
+		}
+
+		private async UniTaskVoid RunTimerAsync(CancellationToken cancellationToken)
+		{
+			try
+			{
+				float timeLeft;
+				while ((timeLeft = (_lastUsedTime + TimeBeforeAction) - Time.time) > 0)
+				{
+					await UniTaskUtils.Delay(timeLeft, ignoreTimeScale: true, cancellationToken: cancellationToken);
+				}
+				
+				if (!cancellationToken.IsCancellationRequested)
+				{
+					InactivityAction?.Invoke();
+					enabled = false;
+				}
+			}
+			catch (OperationCanceledException) {}
 		}
 
 		#endregion

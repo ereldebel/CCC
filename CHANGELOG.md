@@ -31,6 +31,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [//]: # ()
 [//]: # (- )
 
+## [3.0.0] - 2025-08-02
+
+### Added
+- InputManager: Complete input management system that can detect controller disconnection and device type changes
+- DeviceControlsListener: Listener for device control changes and controller type updates
+- Haptics: Comprehensive haptic feedback system with intensity control and reset functionality
+- InactivityTimer: Timer system that triggers actions after periods of inactivity
+- MonoBehaviourExt: Extended MonoBehaviour with cached transform and gameObject references
+- UIGroup: Canvas group wrapper with clear API for moving UI groups
+- SceneLoading namespace with improved scene management:
+  - SceneEntry: Individual scene entry management
+  - SceneMask: Scene masking functionality
+  - SceneType: Enhanced scene type system
+- UniTaskUtils: Utility methods for UniTask operations including delay and interpolation methods
+- Enhanced SceneLoader with options for default entry/exit transitions and minimum load time
+
+### Fixed
+- SceneMask enumerator bug: Fixed incorrect bit shifting logic in GetEnumerator() method that was causing incorrect scene type enumeration
+
+### Changed
+- Refactored SceneLoader into SceneLoading namespace for better organization
+- Changed SceneLoader to not load loadOnStart scenes if there are already loaded scenes when it is loaded
+- Replaced Coroutine system with UniTask-based implementation for better performance and cancellation support
+
+### Removed
+- Coroutine.cs: Replaced with UniTask-based UniTaskUtils.cs
+
+
 ## [2.0.0] - 2023-05-22
 
 ### Added

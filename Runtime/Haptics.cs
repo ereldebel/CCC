@@ -1,7 +1,9 @@
-﻿using System;
-using System.Collections;
+using CCC.Runtime.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -15,8 +17,8 @@ namespace CCC.Runtime
 		private readonly InputManager _inputManager;
 		private Frequencies _hapticsFrequencies;
 		private float _intensity = 1;
-
-		private readonly Dictionary<HapticsReference, Coroutine> _runningHaptics = new();
+		private CancellationTokenSource _mainCancellationToken;
+		private readonly Dictionary<HapticsReference, CancellationTokenSource> _runningHaptics = new();
 
 		#endregion
 
@@ -58,6 +60,14 @@ namespace CCC.Runtime
 		
 		public void Reset()
 		{
+			_mainCancellationToken?.Cancel();
+			_mainCancellationToken?.Dispose();
+
+			foreach (var cts in _runningHaptics.Values)
+			{
+				cts?.Dispose();
+			}
+
 			_runningHaptics.Clear();
 			HapticsFrequencies = Frequencies.Zero;
 		}
@@ -73,12 +83,17 @@ namespace CCC.Runtime
 		public void StartHaptics(HapticsReference hapticsReference, bool worksOnPause = false)
 		{
 			bool alreadyRunning = _runningHaptics.ContainsKey(hapticsReference);
-			Coroutine timedCoroutine = null;
+			CancellationTokenSource mainCts = _mainCancellationToken ??= new();
+			CancellationTokenSource timedCts = null;
 			if (hapticsReference.Timed)
 			{
 				if (alreadyRunning && _runningHaptics[hapticsReference] != null)
-					_inputManager.StopCoroutine(_runningHaptics[hapticsReference]);
-				timedCoroutine = _inputManager.StartCoroutine(TimedHapticsStop(hapticsReference, worksOnPause));
+				{
+					_runningHaptics[hapticsReference].Cancel();
+					_runningHaptics[hapticsReference].Dispose();
+				}
+				timedCts = CancellationTokenSource.CreateLinkedTokenSource(mainCts.Token);
+				StopHapticsAfterTimeout(hapticsReference, worksOnPause, timedCts.Token).Forget();
 			}
 			else if (alreadyRunning)
 			{
@@ -87,7 +102,8 @@ namespace CCC.Runtime
 
 			if (!_paused || worksOnPause)
 				HapticsFrequencies = Frequencies.Max(HapticsFrequencies, hapticsReference.Frequencies);
-			_runningHaptics[hapticsReference] = timedCoroutine;
+
+			_runningHaptics[hapticsReference] = timedCts;
 		}
 
 		public void PauseAllHaptics()
@@ -104,7 +120,13 @@ namespace CCC.Runtime
 
 		public void StopHaptics(HapticsReference hapticsReference)
 		{
-			_runningHaptics.Remove(hapticsReference);
+			if (_runningHaptics.TryGetValue(hapticsReference, out var cts))
+			{
+				cts?.Cancel();
+				cts?.Dispose();
+				_runningHaptics.Remove(hapticsReference);
+			}
+
 			if (_paused)
 				HapticsFrequencies = Frequencies.Zero;
 			else
@@ -118,8 +140,12 @@ namespace CCC.Runtime
 		public void Dispose()
 		{
 			_inputManager.DeviceTypeChanged -= DeviceChanged;
+			Reset();
+
 			foreach (var gamepad in Gamepad.all)
+			{
 				gamepad.SetMotorSpeeds(0,0);
+			}
 		}
 
 		#endregion
@@ -137,13 +163,17 @@ namespace CCC.Runtime
 			HapticsFrequencies = Frequencies.Max(_runningHaptics.Select(e => e.Key.Frequencies));
 		}
 
-		private IEnumerator TimedHapticsStop(HapticsReference hapticsReference, bool worksOnPause = false)
+		private async UniTask StopHapticsAfterTimeout(HapticsReference hapticsReference, bool worksOnPause, CancellationToken cancellationToken)
 		{
-			if (worksOnPause)
-				yield return new WaitForSecondsRealtime(hapticsReference.Duration);
-			else
-				yield return new WaitForSeconds(hapticsReference.Duration);
-			StopHaptics(hapticsReference);
+			try
+			{
+				await UniTaskUtils.Delay(hapticsReference.Duration, ignoreTimeScale: worksOnPause, cancellationToken: cancellationToken);
+			}
+			catch (OperationCanceledException) { }
+			finally
+			{
+				StopHaptics(hapticsReference);
+			}
 		}
 
 		#endregion

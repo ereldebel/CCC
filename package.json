@@ -7,6 +7,9 @@
   "unityRelease": "1f1",
   "changelogUrl": "https://github.com/ereldebel/CCC/blob/main/CHANGELOG.md",
   "licensesUrl": "https://github.com/ereldebel/CCC/blob/main/LICENSE.md",
+  "dependencies": {
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask"
+  },
   "author": {
     "name": "Erel Debel",
     "email": "ereldebel@gmail.com",

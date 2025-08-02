@@ -1,13 +1,19 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using System.Linq;
 using CCC.Runtime.Utils;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Threading.Tasks;
 
-namespace CCC.Runtime
+namespace CCC.Runtime.SceneLoading
 {
+	/// <summary>
+	/// A class that manages scene loading and unloading.
+	/// </summary>
 	public class SceneLoader : MonoBehaviour
 	{
 		#region Serialized Fields
@@ -72,18 +78,17 @@ namespace CCC.Runtime
 		/// <summary>
 		/// Unloads all but the SceneLoader scene and reloads all scenes marked to load on start.
 		/// </summary>
-		public void Reset(Action endAction = null)
+		public UniTask Reset()
 		{
 			var scenesToUnload = _activeScenes[SceneMask.InverseMask(SceneType.SceneLoader)].ToList();
 			var scenesToLoad = Scenes.Where(scene => scene.loadOnStart && !IsSceneLoaded(scene)).ToList();
-			SwitchScene(scenesToLoad, scenesToUnload);
-			endAction?.Invoke();
+			return SwitchScene(scenesToLoad, scenesToUnload);
 		}
 
 		/// <summary>
 		/// Gets all active scenes of requested type.
 		/// </summary>
-		public IReadOnlyCollection<SceneEntry> GetActiveScenes(SceneType type)
+		public IEnumerable<SceneEntry> GetActiveScenes(SceneType type)
 		{
 			return _activeScenes[type];
 		}
@@ -93,35 +98,41 @@ namespace CCC.Runtime
 		/// </summary>
 		/// <param name="sceneEntryIndex">The index of the SceneEntry in the SceneLoader.</param>
 		/// <param name="specificScenesToUnload">Optional: specific scenes to unload. This is instead of the dynamic scenes unload</param>
-		/// <param name="switchEndAction">Optional: an action to perform once the Switch ends.</param>
-		public void SwitchScene(int sceneEntryIndex, IReadOnlyCollection<SceneEntry> specificScenesToUnload = null,
-			Action switchEndAction = null) =>
-			SwitchScene(Scenes[sceneEntryIndex], specificScenesToUnload, switchEndAction);
+		public UniTask SwitchScene(int sceneEntryIndex, IReadOnlyCollection<SceneEntry> specificScenesToUnload = null) =>
+			SwitchScene(Scenes[sceneEntryIndex], specificScenesToUnload);
 
 		/// <summary>
 		/// Unloads all dynamic scenes, reloads ConstantReload scenes and loads the given scene.
 		/// </summary>
 		/// <param name="scene">Scene to load</param>
 		/// <param name="specificScenesToUnload">Optional: specific scenes to unload. This is instead of the dynamic scenes unload</param>
-		/// <param name="switchEndAction">Optional: an action to perform once the Switch ends.</param>
-		public void SwitchScene(SceneEntry scene, IReadOnlyCollection<SceneEntry> specificScenesToUnload = null,
-			Action switchEndAction = null)
+		public UniTask SwitchScene(SceneEntry scene, IReadOnlyCollection<SceneEntry> specificScenesToUnload = null)
 		{
 			_singleScene[0] = scene;
-			SwitchScene(_singleScene, specificScenesToUnload, switchEndAction);
+			return SwitchScene(_singleScene, specificScenesToUnload);
 		}
 
 		/// <summary>
 		/// Unloads all dynamic scenes, reloads ConstantReload scenes and loads the given scene.
 		/// </summary>
-		/// <param name="scenes">Scenes to load</param>
+		/// <param name="newScenes">Scenes to load</param>
 		/// <param name="specificScenesToUnload">Optional: specific scenes to unload. This is instead of the dynamic scenes unload</param>
-		/// <param name="switchEndAction">Optional: an action to perform once the Switch ends.</param>
-		public void SwitchScene(IReadOnlyCollection<SceneEntry> scenes,
-			IReadOnlyCollection<SceneEntry> specificScenesToUnload = null,
-			Action switchEndAction = null)
+		public async UniTask SwitchScene(IReadOnlyCollection<SceneEntry> newScenes,
+			IReadOnlyCollection<SceneEntry> specificScenesToUnload = null)
 		{
-			StartCoroutine(SwitchSceneCoroutine(scenes, specificScenesToUnload, switchEndAction));
+			await UniTaskUtils.InterpolateUnscaledTime(EntryTransition, sceneSwitchFadeDuration);
+			UniTask minLoadTimer = UniTaskUtils.Delay(minLoadTime);
+
+			if (specificScenesToUnload != null)
+				await UnloadScenesAsync(specificScenesToUnload);
+			else
+				await UnloadScenesAsync(SceneType.Dynamic);
+
+			if (_activeScenes[SceneType.ConstantReload].Any())
+				await ReloadScenesAsync();
+
+			await UniTask.WhenAll(LoadScenesAsync(newScenes), minLoadTimer);
+			await UniTaskUtils.InterpolateUnscaledTime(ExitTransition, sceneSwitchFadeDuration);
 		}
 
 		/// <summary>
@@ -167,11 +178,7 @@ namespace CCC.Runtime
 		/// </summary>
 		public void UnloadDynamicScenes()
 		{
-			var sceneEntries = _activeScenes[SceneType.Dynamic];
-			foreach (var scene in sceneEntries)
-				SceneManager.UnloadSceneAsync(scene.sceneName);
-
-			sceneEntries.Clear();
+			UnloadScenesAsync(SceneType.Dynamic).Forget();
 		}
 
 		#endregion
@@ -190,85 +197,61 @@ namespace CCC.Runtime
 			return false;
 		}
 
-		private IEnumerator SwitchSceneCoroutine(IReadOnlyCollection<SceneEntry> newScenes,
-			IReadOnlyCollection<SceneEntry> specificScenesToUnload = null, Action switchEndAction = null)
-		{
-			yield return Coroutines.InterpolateUnscaledTime(EntryTransition, sceneSwitchFadeDuration);
-			var startTime = Time.time;
-			if (specificScenesToUnload != null)
-				yield return UnloadScenes(specificScenesToUnload);
-			else
-				yield return UnloadScenes(SceneType.Dynamic);
-			if (_activeScenes[SceneType.ConstantReload].Count > 0)
-				yield return ReloadScenes();
-			yield return LoadScenes(newScenes);
-			var remainingTime = startTime + minLoadTime - Time.time;
-			if (remainingTime > 0)
-				yield return new WaitForSeconds(remainingTime);
-			yield return Coroutines.InterpolateUnscaledTime(ExitTransition, sceneSwitchFadeDuration);
-			switchEndAction?.Invoke();
-		}
-
-		private IEnumerator ReloadScenes()
+		private async UniTask ReloadScenesAsync()
 		{
 			var constantReloadScenes = _activeScenes[SceneType.ConstantReload];
 			int constantReloadCount = constantReloadScenes.Count;
-			var ops = new AsyncOperation[constantReloadCount];
+			var tasks = new UniTask[constantReloadCount];
+			
 			int i = 0;
 			foreach (var reloadScene in constantReloadScenes)
 			{
-				ops[i++] = SceneManager.UnloadSceneAsync(reloadScene.sceneName);
+				tasks[i++] = SceneManager.UnloadSceneAsync(reloadScene.sceneName).ToUniTask();
 			}
 
-			yield return new WaitUntil(() => ops.All(op => op.isDone));
+			await UniTask.WhenAll(tasks);
 
 			i = 0;
 			foreach (var reloadScene in constantReloadScenes)
 			{
-				ops[i++] = SceneManager.LoadSceneAsync(reloadScene.sceneName, LoadSceneMode.Additive);
+				tasks[i++] = SceneManager.LoadSceneAsync(reloadScene.sceneName, LoadSceneMode.Additive).ToUniTask();
 			}
 
-			yield return new WaitUntil(() => ops.All(op => op.isDone));
+			await UniTask.WhenAll(tasks);
 		}
 
-		private IEnumerator UnloadScenes(IReadOnlyCollection<SceneEntry> scenes)
+		private async UniTask UnloadScenesAsync(IReadOnlyCollection<SceneEntry> scenes)
 		{
 			int sceneCount = scenes.Count;
-			var ops = new AsyncOperation[sceneCount];
+			var tasks = new UniTask[sceneCount];
+
 			int i = 0;
 			foreach (var scene in scenes)
 			{
-				ops[i++] = SceneManager.UnloadSceneAsync(scene.sceneName);
-				_activeScenes.Remove(scene);
+				tasks[i++] = SceneManager.UnloadSceneAsync(scene.sceneName)
+					.ToUniTask()
+					.ContinueWith(() => _activeScenes.Remove(scene));
 			}
 
-			yield return new WaitUntil(() => ops.All(op => op.isDone));
+			await UniTask.WhenAll(tasks);
 		}
 
-		private IEnumerator UnloadScenes(SceneType type)
-		{
-			var scenes = _activeScenes[type];
-			int sceneCount = scenes.Count;
-			var ops = new AsyncOperation[sceneCount];
-			int i = 0;
-			foreach (var scene in scenes)
-				ops[i++] = SceneManager.UnloadSceneAsync(scene.sceneName);
-			_activeScenes[type].Clear();
-			yield return new WaitUntil(() => ops.All(op => op.isDone));
-		}
+		private UniTask UnloadScenesAsync(SceneType type) => UnloadScenesAsync(_activeScenes[type]);
 
-		private IEnumerator LoadScenes(IReadOnlyCollection<SceneEntry> scenes)
+		private async UniTask LoadScenesAsync(IReadOnlyCollection<SceneEntry> scenes)
 		{
 			int sceneCount = scenes.Count;
-			var ops = new AsyncOperation[sceneCount];
+			var tasks = new UniTask[sceneCount];
+
 			int i = 0;
 			foreach (var scene in scenes)
 			{
-				ops[i++] = SceneManager.LoadSceneAsync(scene.sceneName, LoadSceneMode.Additive);
-				_activeScenes.Add(scene);
+				tasks[i++] = SceneManager.LoadSceneAsync(scene.sceneName, LoadSceneMode.Additive)
+					.ToUniTask()
+					.ContinueWith(() => _activeScenes.Add(scene));
 			}
 
-			yield return new WaitUntil(() => ops.All(op => op.isDone));
+			await UniTask.WhenAll(tasks);
 		}
 
 		#endregion
@@ -348,97 +331,6 @@ namespace CCC.Runtime
 
 			#endregion
 		}
-
-		[Serializable]
-		public class SceneEntry
-		{
-			/// <summary>
-			/// The name of the scene.
-			/// </summary>
-			[SerializeField] public string sceneName;
-
-			/// <summary>
-			/// The type of the scene.
-			/// </summary>
-			[SerializeField] public SceneType type;
-
-			/// <summary>
-			/// Should this scene be loaded on SceneLoader's Awake.
-			/// </summary>
-			[SerializeField] public bool loadOnStart;
-		}
-
-		public enum SceneType
-		{
-			/// <summary>
-			/// The SceneLoader's scene.
-			/// </summary>
-			SceneLoader = 0,
-
-			/// <summary>
-			/// A scene that stays loaded unless unloaded explicitly.
-			/// </summary>
-			Constant = 1,
-
-			/// <summary>
-			/// A scene that is only temporarily loaded.
-			/// </summary>
-			Dynamic = 2,
-
-			/// <summary>
-			/// A scene that is reloaded on each scene switch.
-			/// </summary>
-			ConstantReload = 3,
-		}
-
-		public readonly struct SceneMask
-		{
-			#region Private Fields
-
-			private readonly int _mask;
-
-			#endregion
-
-			#region Constructors
-
-			public SceneMask(int mask) => _mask = mask;
-
-			public SceneMask(params SceneType[] types) =>
-				_mask = types.Aggregate(0, (mask, type) => mask | (1 << (int)type));
-
-			public static SceneMask InverseMask(SceneType type) =>
-				new(~(1 << (int)type));
-
-			public static SceneMask InverseMask(params SceneType[] types) =>
-				new(~types.Aggregate(0, (mask, type) => mask | (1 << (int)type)));
-
-			#endregion
-
-			#region Operator Overloads
-
-			public static explicit operator SceneMask(int mask) => new(mask);
-
-			public static explicit operator SceneMask(SceneType type) => new(type);
-
-			public static SceneMask operator &(SceneMask lhs, SceneMask rhs) => new(lhs._mask & rhs._mask);
-			
-			public static SceneMask operator |(SceneMask lhs, SceneMask rhs) => new(lhs._mask | rhs._mask);
-
-			#endregion
-
-			#region Public Methods
-
-			public IEnumerator<SceneType> GetEnumerator()
-			{
-				int bit = 1;
-				for (int type = 0; type < EnumUtils.Count<SceneType>(); ++type, bit <<= 1)
-					if ((_mask & bit) != 0)
-						yield return (SceneType)type;
-			}
-
-			#endregion
-		}
-
 		#endregion
 	}
 }

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections;
-using JetBrains.Annotations;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace CCC.Runtime
 {
@@ -45,23 +42,6 @@ namespace CCC.Runtime
 
 				return _gameObject;
 			}
-		}
-
-		#endregion
-
-		#region Public Methods
-
-		public void DelayInvoke([NotNull] Action action, float delay) =>
-			StartCoroutine(DelayInvokeCoroutine(action, delay));
-
-		#endregion
-
-		#region Private Methods
-
-		private IEnumerator DelayInvokeCoroutine(Action action, float delay)
-		{
-			yield return new WaitForSeconds(delay);
-			action.Invoke();
 		}
 
 		#endregion
