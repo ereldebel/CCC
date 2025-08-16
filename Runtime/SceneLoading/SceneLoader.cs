@@ -141,7 +141,7 @@ namespace CCC.Runtime.SceneLoading
 		public async UniTask SwitchScene(IReadOnlyCollection<SceneEntry> newScenes,
 			IReadOnlyCollection<SceneEntry> specificScenesToUnload = null)
 		{
-			await UniTaskUtils.InterpolateUnscaledTime(EntryTransition, sceneSwitchFadeDuration);
+			await UniTaskUtils.Interpolate(EntryTransition, sceneSwitchFadeDuration, ignoreTimeScale: true);
 			UniTask minLoadTimer = UniTaskUtils.Delay(minLoadTime);
 
 			if (specificScenesToUnload != null)
@@ -153,7 +153,7 @@ namespace CCC.Runtime.SceneLoading
 				await ReloadScenesAsync();
 
 			await UniTask.WhenAll(LoadScenesAsync(newScenes), minLoadTimer);
-			await UniTaskUtils.InterpolateUnscaledTime(ExitTransition, sceneSwitchFadeDuration);
+			await UniTaskUtils.Interpolate(ExitTransition, sceneSwitchFadeDuration, ignoreTimeScale: true);
 		}
 
 		/// <summary>

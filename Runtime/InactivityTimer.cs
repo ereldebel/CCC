@@ -16,7 +16,7 @@ namespace CCC.Runtime
 
 		[Tooltip("Time in seconds before the inactivity action is triggered")]
 		[field: SerializeField]
-		public float TimeBeforeAction { get; set; } = 60;
+		public uint TimeBeforeAction { get; set; } = 60;
 
 		#endregion
 

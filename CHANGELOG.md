@@ -5,31 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-[//]: # (## [MAJOR.MINOR.PATCH] - yyyy-mm-dd)
+<!-- ## [MAJOR.MINOR.PATCH] - yyyy-mm-dd
 
-[//]: # ()
-[//]: # (### Added)
+### Added
+- 
 
-[//]: # ()
-[//]: # (- )
+### Fixed
+- 
 
-[//]: # ()
-[//]: # (### Fixed)
+### Changed
+- 
 
-[//]: # ()
-[//]: # (- )
+### Removed
+-  -->
 
-[//]: # ()
-[//]: # (### Changed)
+## [3.1.0] - 2025-08-16
 
-[//]: # ()
-[//]: # (- )
+### Added
+- Comprehensive XML documentation for all classes and public members across the entire codebase
+- Tooltips for all serialized fields to improve Unity Inspector user experience
+- Complete test suite using Unity Test Framework with extensive coverage:
+  - Vector2Utils, Vector2IntUtils, Vector3Utils, Vector3IntUtils tests
+  - EnumUtils tests with multiple test scenarios
+  - SceneMask tests covering all bitwise operations and enumeration
+  - MonoBehaviourExt tests for cached component access
+  - InputManager.DeviceType enum validation tests
+  - HapticsTests for HapticsReference behavior and timed vs infinite haptic logic
+  - InactivityTimerTests for component initialization and API validation
+  - UIGroupTests for Opacity and Offset functionality with Unity components
+  - DeviceControlsListenerTests for component dependency verification
+  - SceneLoading namespace tests (SceneEntryTests, SceneTypeTests) for configuration validation
+  - UniTaskUtilsTests for async utility method validation
+- Enhanced README.md with comprehensive feature documentation, installation instructions, and usage examples
+- File links in README.md for easy navigation to source code
 
-[//]: # ()
-[//]: # (### Removed)
+### Fixed
+- SceneMask now properly implements IEnumerable<SceneType> interface with both generic and non-generic GetEnumerator methods
+- InactivityTimer implementation simplified using UniTask.Delay for more efficient and reliable operation
 
-[//]: # ()
-[//]: # (- )
+### Changed
+- Enhanced code documentation following C# XML documentation standards
 
 ## [3.0.0] - 2025-08-02
 
