@@ -8,7 +8,7 @@ namespace CCC.Runtime.Utils
     public static class UniTaskUtils
     {
         private const int MillisecondsPerSecond = 1000;
-        
+
         /// <summary>
         /// Delays execution for the specified number of seconds.
         /// </summary>
@@ -25,7 +25,7 @@ namespace CCC.Runtime.Utils
         {
             return InterpolateInternal(t => { interpolator(t); return true; }, duration, () => Time.unscaledTime, cancellationToken);
         }
-        
+
         /// <summary>
         /// An async method that passes the interpolated values [0,1] to the interpolator through the given duration
         /// or until the interpolator returns false. Uses unscaled time.
@@ -34,7 +34,7 @@ namespace CCC.Runtime.Utils
         {
             return InterpolateInternal(interpolator, duration, () => Time.unscaledTime, cancellationToken);
         }
-        
+
         /// <summary>
         /// An async method that passes the interpolated values [0,1] to the interpolator through the given duration.
         /// </summary>
@@ -42,7 +42,7 @@ namespace CCC.Runtime.Utils
         {
             return InterpolateInternal(t => { interpolator(t); return true; }, duration, () => Time.time, cancellationToken);
         }
-        
+
         /// <summary>
         /// An async method that passes the interpolated values [0,1] to the interpolator through the given duration
         /// or until the interpolator returns false.
@@ -51,7 +51,7 @@ namespace CCC.Runtime.Utils
         {
             return InterpolateInternal(interpolator, duration, () => Time.time, cancellationToken);
         }
-        
+
         /// <summary>
         /// Internal implementation for interpolation methods.
         /// </summary>
@@ -59,21 +59,21 @@ namespace CCC.Runtime.Utils
         {
             float startTime = getTime();
             float t;
-            
+
             while ((t = (getTime() - startTime) / duration) < 1)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                
+
                 if (!interpolator.Invoke(t))
                     return;
-                
+
                 await UniTask.Yield(cancellationToken);
             }
-            
+
             cancellationToken.ThrowIfCancellationRequested();
             interpolator.Invoke(1f);
         }
-        
+
         /// <summary>
         /// An async method that performs the given action while the given predicate evaluates to false.
         /// </summary>

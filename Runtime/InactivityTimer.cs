@@ -45,14 +45,14 @@ namespace CCC.Runtime
 		}
 
 		#endregion
-		
+
 		#region Public Methods
 
 		public void Used()
 		{
 			_lastUsedTime = Time.time;
 		}
-		
+
 		#endregion
 
 		#region Private Methods
@@ -73,14 +73,14 @@ namespace CCC.Runtime
 				{
 					await UniTaskUtils.Delay(timeLeft, ignoreTimeScale: true, cancellationToken: cancellationToken);
 				}
-				
+
 				if (!cancellationToken.IsCancellationRequested)
 				{
 					InactivityAction?.Invoke();
 					enabled = false;
 				}
 			}
-			catch (OperationCanceledException) {}
+			catch (OperationCanceledException) { }
 		}
 
 		#endregion

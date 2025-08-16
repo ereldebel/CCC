@@ -37,7 +37,7 @@ namespace CCC.Runtime.SceneLoading
 		public static explicit operator SceneMask(SceneType type) => new(type);
 
 		public static SceneMask operator &(SceneMask lhs, SceneMask rhs) => new(lhs._mask & rhs._mask);
-		
+
 		public static SceneMask operator |(SceneMask lhs, SceneMask rhs) => new(lhs._mask | rhs._mask);
 
 		#endregion

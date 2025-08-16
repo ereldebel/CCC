@@ -14,7 +14,7 @@ namespace CCC.Runtime
 			InputManager.Instance.DeviceTypeChanged += ChangeSpriteAsset;
 			ChangeSpriteAsset(InputManager.Instance.CurrentDeviceType);
 		}
-		
+
 		private void OnDestroy()
 		{
 			InputManager.Instance.DeviceTypeChanged -= ChangeSpriteAsset;
@@ -40,9 +40,9 @@ namespace CCC.Runtime
 		{
 			return Resources.Load<TMP_SpriteAsset>(deviceType switch
 			{
-				DualShock=>InputManager.Instance.dualShockSpriteAsset,
-				XboxController=>InputManager.Instance.xBoxSpriteAsset,
-				_=>InputManager.Instance.keyboardSpriteAsset
+				DualShock => InputManager.Instance.dualShockSpriteAsset,
+				XboxController => InputManager.Instance.xBoxSpriteAsset,
+				_ => InputManager.Instance.keyboardSpriteAsset
 			});
 		}
 	}

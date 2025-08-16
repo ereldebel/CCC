@@ -19,7 +19,7 @@ namespace CCC.Runtime.SceneLoading
 		#region Serialized Fields
 
 		[field: SerializeField] public SceneEntry[] Scenes { get; private set; }
-		
+
 		[field: SerializeField] public UIGroup TransitionScreen { get; set; }
 
 		[SerializeField] private float sceneSwitchFadeDuration = 2;
@@ -202,7 +202,7 @@ namespace CCC.Runtime.SceneLoading
 			var constantReloadScenes = _activeScenes[SceneType.ConstantReload];
 			int constantReloadCount = constantReloadScenes.Count;
 			var tasks = new UniTask[constantReloadCount];
-			
+
 			int i = 0;
 			foreach (var reloadScene in constantReloadScenes)
 			{

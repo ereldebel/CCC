@@ -57,7 +57,7 @@ namespace CCC.Runtime
 		#endregion
 
 		#region Public Methods
-		
+
 		public void Reset()
 		{
 			_mainCancellationToken?.Cancel();
@@ -144,7 +144,7 @@ namespace CCC.Runtime
 
 			foreach (var gamepad in Gamepad.all)
 			{
-				gamepad.SetMotorSpeeds(0,0);
+				gamepad.SetMotorSpeeds(0, 0);
 			}
 		}
 
@@ -186,7 +186,8 @@ namespace CCC.Runtime
 			public bool Timed => !float.IsInfinity(Duration);
 			[field: SerializeField] internal Frequencies Frequencies { get; private set; }
 
-			[field: SerializeField] [field: Range(0, float.PositiveInfinity)]
+			[field: SerializeField]
+			[field: Range(0, float.PositiveInfinity)]
 			public float Duration { get; private set; }
 
 			public HapticsReference(float high, float low, float duration = float.PositiveInfinity)
