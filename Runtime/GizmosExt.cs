@@ -2,11 +2,19 @@
 
 namespace CCC.Runtime
 {
+	/// <summary>
+	/// Extension methods for Unity's Gizmos class, providing additional drawing utilities
+	/// for debugging and visualization purposes in the Scene view.
+	/// </summary>
 	public static class GizmosExt
 	{
 		/// <summary>
-		/// Draws a wireframe capsule with between a and b with the given radius.
+		/// Draws a wireframe capsule between two points with the specified radius.
+		/// Creates a visual representation of a capsule shape using spheres and connecting lines.
 		/// </summary>
+		/// <param name="a">The start point of the capsule.</param>
+		/// <param name="b">The end point of the capsule.</param>
+		/// <param name="radius">The radius of the capsule.</param>
 		public static void DrawWireCapsule(Vector3 a, Vector3 b, float radius)
 		{
 			Gizmos.DrawWireSphere(a, radius);

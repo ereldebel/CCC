@@ -12,16 +12,19 @@ namespace CCC.Runtime.SceneLoading
 		/// <summary>
 		/// The name of the scene.
 		/// </summary>
-		[SerializeField] public string sceneName;
+		[SerializeField, Tooltip("The name of the scene file (without .unity extension)")]
+		public string sceneName;
 
 		/// <summary>
 		/// The type of the scene.
 		/// </summary>
-		[SerializeField] public SceneType type;
+		[SerializeField, Tooltip("The behavior type of this scene (how it should be managed)")]
+		public SceneType type;
 
 		/// <summary>
 		/// Should this scene be loaded on SceneLoader's Awake.
 		/// </summary>
-		[SerializeField] public bool loadOnStart;
+		[SerializeField, Tooltip("Whether this scene should be loaded automatically when the SceneLoader starts")]
+		public bool loadOnStart;
 	}
 }

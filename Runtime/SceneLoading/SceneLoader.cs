@@ -1,29 +1,35 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading;
 using System.Linq;
 using CCC.Runtime.Utils;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using System.Threading.Tasks;
 
 namespace CCC.Runtime.SceneLoading
 {
 	/// <summary>
-	/// A class that manages scene loading and unloading.
+	/// A class that manages scene loading and unloading with support for different scene types,
+	/// transition effects, and additive scene loading. Provides centralized scene management
+	/// with automatic scene type handling and transition animations.
 	/// </summary>
 	public class SceneLoader : MonoBehaviour
 	{
 		#region Serialized Fields
 
-		[field: SerializeField] public SceneEntry[] Scenes { get; private set; }
+		[field: SerializeField,
+			Tooltip("Array of scene entries defining all available scenes and their properties")]
+		public SceneEntry[] Scenes { get; private set; }
 
-		[field: SerializeField] public UIGroup TransitionScreen { get; set; }
+		[field: SerializeField, Tooltip("UI group used for transition screen effects")]
+		public UIGroup TransitionScreen { get; set; }
 
-		[SerializeField] private float sceneSwitchFadeDuration = 2;
-		[SerializeField] private float minLoadTime = 1.5f;
+		[SerializeField, Tooltip("Duration of fade transitions in seconds")]
+		private float sceneSwitchFadeDuration = 2;
+
+		[SerializeField, Tooltip("Minimum time to show loading screen in seconds")]
+		private float minLoadTime = 1.5f;
 
 		#endregion
 
@@ -37,7 +43,16 @@ namespace CCC.Runtime.SceneLoading
 
 		#region Properties
 
+		/// <summary>
+		/// Gets or sets the action to perform during entry transitions (fade in).
+		/// </summary>
+		/// <value>Action that takes a float parameter (0-1) for transition progress.</value>
 		public Action<float> EntryTransition { get; set; }
+		
+		/// <summary>
+		/// Gets or sets the action to perform during exit transitions (fade out).
+		/// </summary>
+		/// <value>Action that takes a float parameter (0-1) for transition progress.</value>
 		public Action<float> ExitTransition { get; set; }
 
 		#endregion
@@ -78,6 +93,7 @@ namespace CCC.Runtime.SceneLoading
 		/// <summary>
 		/// Unloads all but the SceneLoader scene and reloads all scenes marked to load on start.
 		/// </summary>
+		/// <returns>A UniTask representing the asynchronous reset operation.</returns>
 		public UniTask Reset()
 		{
 			var scenesToUnload = _activeScenes[SceneMask.InverseMask(SceneType.SceneLoader)].ToList();
@@ -88,6 +104,8 @@ namespace CCC.Runtime.SceneLoading
 		/// <summary>
 		/// Gets all active scenes of requested type.
 		/// </summary>
+		/// <param name="type">The scene type to filter by.</param>
+		/// <returns>An enumerable of active scenes of the specified type.</returns>
 		public IEnumerable<SceneEntry> GetActiveScenes(SceneType type)
 		{
 			return _activeScenes[type];
@@ -98,6 +116,7 @@ namespace CCC.Runtime.SceneLoading
 		/// </summary>
 		/// <param name="sceneEntryIndex">The index of the SceneEntry in the SceneLoader.</param>
 		/// <param name="specificScenesToUnload">Optional: specific scenes to unload. This is instead of the dynamic scenes unload</param>
+		/// <returns>A UniTask representing the asynchronous scene switch operation.</returns>
 		public UniTask SwitchScene(int sceneEntryIndex, IReadOnlyCollection<SceneEntry> specificScenesToUnload = null) =>
 			SwitchScene(Scenes[sceneEntryIndex], specificScenesToUnload);
 
@@ -106,6 +125,7 @@ namespace CCC.Runtime.SceneLoading
 		/// </summary>
 		/// <param name="scene">Scene to load</param>
 		/// <param name="specificScenesToUnload">Optional: specific scenes to unload. This is instead of the dynamic scenes unload</param>
+		/// <returns>A UniTask representing the asynchronous scene switch operation.</returns>
 		public UniTask SwitchScene(SceneEntry scene, IReadOnlyCollection<SceneEntry> specificScenesToUnload = null)
 		{
 			_singleScene[0] = scene;
@@ -117,6 +137,7 @@ namespace CCC.Runtime.SceneLoading
 		/// </summary>
 		/// <param name="newScenes">Scenes to load</param>
 		/// <param name="specificScenesToUnload">Optional: specific scenes to unload. This is instead of the dynamic scenes unload</param>
+		/// <returns>A UniTask representing the asynchronous scene switch operation.</returns>
 		public async UniTask SwitchScene(IReadOnlyCollection<SceneEntry> newScenes,
 			IReadOnlyCollection<SceneEntry> specificScenesToUnload = null)
 		{
@@ -144,17 +165,23 @@ namespace CCC.Runtime.SceneLoading
 		/// <summary>
 		/// Loads the given scene additively.
 		/// </summary>
+		/// <param name="scene">The scene entry to load.</param>
 		public void LoadScene(SceneEntry scene)
 		{
 			SceneManager.LoadSceneAsync(scene.sceneName, LoadSceneMode.Additive);
 			_activeScenes.Add(scene);
 		}
 
+		/// <summary>
+		/// Unloads the given scene by index.
+		/// </summary>
+		/// <param name="sceneEntryIndex">The index of the SceneEntry in the SceneLoader.</param>
 		public void UnloadScene(int sceneEntryIndex) => UnloadScene(Scenes[sceneEntryIndex]);
 
 		/// <summary>
 		/// Unloads the given scene.
 		/// </summary>
+		/// <param name="scene">The scene entry to unload.</param>
 		public void UnloadScene(SceneEntry scene)
 		{
 			SceneManager.UnloadSceneAsync(scene.sceneName);
@@ -164,6 +191,7 @@ namespace CCC.Runtime.SceneLoading
 		/// <summary>
 		/// Unloads the given scenes.
 		/// </summary>
+		/// <param name="scenes">The collection of scene entries to unload.</param>
 		public void UnloadScenes(IEnumerable<SceneEntry> scenes)
 		{
 			foreach (var scene in scenes)
@@ -174,7 +202,7 @@ namespace CCC.Runtime.SceneLoading
 		}
 
 		/// <summary>
-		/// Unloads all active dynamic scenes.
+		/// Unloads all active dynamic scenes asynchronously.
 		/// </summary>
 		public void UnloadDynamicScenes()
 		{
@@ -185,6 +213,11 @@ namespace CCC.Runtime.SceneLoading
 
 		#region Private Methods
 
+		/// <summary>
+		/// Checks if a scene is currently loaded in the SceneManager.
+		/// </summary>
+		/// <param name="scene">The scene entry to check.</param>
+		/// <returns>True if the scene is loaded, false otherwise.</returns>
 		private bool IsSceneLoaded(SceneEntry scene)
 		{
 			var numOfLoadedScenes = SceneManager.sceneCount;
@@ -197,6 +230,10 @@ namespace CCC.Runtime.SceneLoading
 			return false;
 		}
 
+		/// <summary>
+		/// Reloads all constant reload scenes asynchronously.
+		/// </summary>
+		/// <returns>A UniTask representing the asynchronous reload operation.</returns>
 		private async UniTask ReloadScenesAsync()
 		{
 			var constantReloadScenes = _activeScenes[SceneType.ConstantReload];
@@ -220,6 +257,11 @@ namespace CCC.Runtime.SceneLoading
 			await UniTask.WhenAll(tasks);
 		}
 
+		/// <summary>
+		/// Unloads the specified scenes asynchronously.
+		/// </summary>
+		/// <param name="scenes">The collection of scenes to unload.</param>
+		/// <returns>A UniTask representing the asynchronous unload operation.</returns>
 		private async UniTask UnloadScenesAsync(IReadOnlyCollection<SceneEntry> scenes)
 		{
 			int sceneCount = scenes.Count;
@@ -236,8 +278,18 @@ namespace CCC.Runtime.SceneLoading
 			await UniTask.WhenAll(tasks);
 		}
 
+		/// <summary>
+		/// Unloads all scenes of the specified type asynchronously.
+		/// </summary>
+		/// <param name="type">The scene type to unload.</param>
+		/// <returns>A UniTask representing the asynchronous unload operation.</returns>
 		private UniTask UnloadScenesAsync(SceneType type) => UnloadScenesAsync(_activeScenes[type]);
 
+		/// <summary>
+		/// Loads the specified scenes asynchronously.
+		/// </summary>
+		/// <param name="scenes">The collection of scenes to load.</param>
+		/// <returns>A UniTask representing the asynchronous load operation.</returns>
 		private async UniTask LoadScenesAsync(IReadOnlyCollection<SceneEntry> scenes)
 		{
 			int sceneCount = scenes.Count;
@@ -258,6 +310,9 @@ namespace CCC.Runtime.SceneLoading
 
 		#region Inner Types
 
+		/// <summary>
+		/// Manages the collection of active scenes organized by scene type.
+		/// </summary>
 		private class ActiveScenes
 		{
 			#region Private Fields
@@ -271,17 +326,24 @@ namespace CCC.Runtime.SceneLoading
 			/// <summary>
 			/// Get a HashSet of all active scenes by type.
 			/// </summary>
+			/// <param name="type">The scene type to retrieve.</param>
+			/// <returns>A HashSet containing all active scenes of the specified type.</returns>
 			internal HashSet<SceneEntry> this[SceneType type] => _scenes[(int)type];
 
 			/// <summary>
 			/// Get an enumerable of all actives scenes of the given types. 
 			/// </summary>
+			/// <param name="types">The scene mask containing multiple scene types.</param>
+			/// <returns>An enumerable of all active scenes matching the specified types.</returns>
 			internal IEnumerable<SceneEntry> this[SceneMask types] => new EnumerableScenes(types, this);
 
 			#endregion
 
 			#region Conostructors
 
+			/// <summary>
+			/// Initializes a new ActiveScenes instance with arrays for each scene type.
+			/// </summary>
 			internal ActiveScenes()
 			{
 				var typeCount = EnumUtils.Count<SceneType>();
@@ -294,31 +356,55 @@ namespace CCC.Runtime.SceneLoading
 
 			#region Internal Methods
 
+			/// <summary>
+			/// Adds a scene to the appropriate type collection.
+			/// </summary>
+			/// <param name="scene">The scene entry to add.</param>
 			internal void Add(SceneEntry scene) => this[scene.type].Add(scene);
 
+			/// <summary>
+			/// Adds multiple scenes to their appropriate type collections.
+			/// </summary>
+			/// <param name="scenes">The collection of scene entries to add.</param>
 			internal void Append(IEnumerable<SceneEntry> scenes)
 			{
 				foreach (var scene in scenes)
 					this[scene.type].Add(scene);
 			}
 
+			/// <summary>
+			/// Removes a scene from its type collection.
+			/// </summary>
+			/// <param name="scene">The scene entry to remove.</param>
 			internal void Remove(SceneEntry scene) => this[scene.type].Remove(scene);
 
 			#endregion
 
 			#region Types
 
+			/// <summary>
+			/// Enumerable wrapper that provides iteration over multiple scene types.
+			/// </summary>
 			private class EnumerableScenes : IEnumerable<SceneEntry>
 			{
 				private readonly SceneMask _types;
 				private readonly ActiveScenes _activeScenes;
 
+				/// <summary>
+				/// Initializes a new EnumerableScenes instance.
+				/// </summary>
+				/// <param name="types">The scene mask containing the types to enumerate.</param>
+				/// <param name="activeScenes">The ActiveScenes instance to enumerate from.</param>
 				internal EnumerableScenes(SceneMask types, ActiveScenes activeScenes)
 				{
 					_types = types;
 					_activeScenes = activeScenes;
 				}
 
+				/// <summary>
+				/// Returns an enumerator that iterates through all scenes of the specified types.
+				/// </summary>
+				/// <returns>An enumerator for SceneEntry objects.</returns>
 				public IEnumerator<SceneEntry> GetEnumerator()
 				{
 					foreach (var type in _types)
@@ -326,6 +412,10 @@ namespace CCC.Runtime.SceneLoading
 							yield return entry;
 				}
 
+				/// <summary>
+				/// Returns a non-generic enumerator.
+				/// </summary>
+				/// <returns>A non-generic enumerator.</returns>
 				IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 			}
 

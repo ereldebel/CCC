@@ -6,11 +6,15 @@ using CCC.Runtime.Utils;
 
 namespace CCC.Runtime
 {
+	/// <summary>
+	/// Monitors user activity and triggers an action after a specified period of inactivity.
+	/// Uses UniTask for asynchronous operation and can be paused/resumed as needed.
+	/// </summary>
 	public class InactivityTimer : MonoBehaviour
 	{
 		#region Serialized Fields
 
-		[Tooltip("Time before inactivity action in seconds")]
+		[Tooltip("Time in seconds before the inactivity action is triggered")]
 		[field: SerializeField]
 		public float TimeBeforeAction { get; set; } = 60;
 
@@ -25,12 +29,19 @@ namespace CCC.Runtime
 
 		#region Properties
 
-		public Action InactivityAction { get; set; }
+		/// <summary>
+		/// Gets or sets the action to be executed when the inactivity timer expires.
+		/// </summary>
+		/// <value>The action to perform after the specified inactivity period.</value>
+		public Action InactivityAction { get; private set; }
 
 		#endregion
 
 		#region Event Functions
 
+		/// <summary>
+		/// Initializes the timer when the component is enabled, starting the inactivity monitoring.
+		/// </summary>
 		private void OnEnable()
 		{
 			_lastUsedTime = Time.time;
@@ -39,6 +50,9 @@ namespace CCC.Runtime
 			RunTimerAsync(_cancellationTokenSource.Token).Forget();
 		}
 
+		/// <summary>
+		/// Stops the timer when the component is disabled to prevent memory leaks.
+		/// </summary>
 		private void OnDisable()
 		{
 			StopTimer();
@@ -48,6 +62,10 @@ namespace CCC.Runtime
 
 		#region Public Methods
 
+		/// <summary>
+		/// Resets the inactivity timer, indicating that the user has been active.
+		/// Call this method whenever user activity is detected.
+		/// </summary>
 		public void Used()
 		{
 			_lastUsedTime = Time.time;
@@ -57,6 +75,9 @@ namespace CCC.Runtime
 
 		#region Private Methods
 
+		/// <summary>
+		/// Stops the current timer and disposes of the cancellation token source.
+		/// </summary>
 		private void StopTimer()
 		{
 			_cancellationTokenSource?.Cancel();
@@ -64,6 +85,10 @@ namespace CCC.Runtime
 			_cancellationTokenSource = null;
 		}
 
+		/// <summary>
+		/// Runs the inactivity timer asynchronously, monitoring for user activity.
+		/// </summary>
+		/// <param name="cancellationToken">Token used to cancel the timer operation.</param>
 		private async UniTaskVoid RunTimerAsync(CancellationToken cancellationToken)
 		{
 			try

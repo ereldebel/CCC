@@ -4,6 +4,15 @@ using static CCC.Runtime.InputManager.DeviceType;
 
 namespace CCC.Runtime
 {
+	/// <summary>
+	/// Automatically updates UI text components to display the appropriate input control icons
+	/// based on the currently detected input device type. Supports DualShock, Xbox Controller,
+	/// and Keyboard input methods with automatic sprite asset switching and caching for performance.
+	/// 
+	/// This component listens for device type changes and dynamically loads the corresponding
+	/// sprite assets from Resources, ensuring players always see the correct button/input icons
+	/// for their current input method.
+	/// </summary>
 	public class DeviceControlsListener : MonoBehaviour
 	{
 		private TextMeshProUGUI _tmp;
