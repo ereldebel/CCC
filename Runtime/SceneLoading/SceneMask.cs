@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using CCC.Runtime.Utils;
@@ -7,7 +8,7 @@ namespace CCC.Runtime.SceneLoading
 	/// <summary>
 	/// A mask of scene types.
 	/// </summary>
-	public readonly struct SceneMask
+	public readonly struct SceneMask : IEnumerable<SceneType>
 	{
 		#region Private Fields
 
@@ -44,6 +45,10 @@ namespace CCC.Runtime.SceneLoading
 
 		#region Public Methods
 
+		/// <summary>
+		/// Returns an enumerator that iterates through the scene types in this mask.
+		/// </summary>
+		/// <returns>An enumerator for the scene types.</returns>
 		public IEnumerator<SceneType> GetEnumerator()
 		{
 			int bit = 1;
@@ -51,6 +56,12 @@ namespace CCC.Runtime.SceneLoading
 				if ((_mask & bit) != 0)
 					yield return (SceneType)type;
 		}
+
+		/// <summary>
+		/// Returns a non-generic enumerator that iterates through the scene types in this mask.
+		/// </summary>
+		/// <returns>A non-generic enumerator for the scene types.</returns>
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
 		#endregion
 	}
