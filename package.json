@@ -8,7 +8,8 @@
   "changelogUrl": "https://github.com/ereldebel/CCC/blob/main/CHANGELOG.md",
   "licensesUrl": "https://github.com/ereldebel/CCC/blob/main/LICENSE.md",
   "dependencies": {
-    "com.cysharp.unitask": "2.5.0"
+    "com.cysharp.unitask": "2.5.0",
+    "jp.hadashikick.vcontainer": "1.17.0"
   },
   "author": {
     "name": "Erel Debel",
