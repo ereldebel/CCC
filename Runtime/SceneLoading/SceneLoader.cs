@@ -83,12 +83,22 @@ namespace CCC.Runtime.SceneLoading
                 return;
             }
 
-            foreach (SceneEntry scene in _config.Scenes)
+            List<SceneEntry> loadOnStartScenes = _config.Scenes
+                .Where(s => s.loadOnStart && s.type != SceneType.SceneLoader)
+                .ToList();
+
+            if (loadOnStartScenes.Count > 0)
             {
-                if (scene.loadOnStart && scene.type != SceneType.SceneLoader)
-                {
-                    LoadScene(scene).Forget();
-                }
+                LoadScenesAsync(loadOnStartScenes)
+                    .ContinueWith(() =>
+                    {
+                        Scene firstLoaded = SceneManager.GetSceneByName(loadOnStartScenes[0].sceneName);
+                        if (firstLoaded.isLoaded)
+                        {
+                            SceneManager.SetActiveScene(firstLoaded);
+                        }
+                    })
+                    .Forget();
             }
         }
 
@@ -167,6 +177,16 @@ namespace CCC.Runtime.SceneLoading
             }
 
             await UniTask.WhenAll(LoadScenesAsync(newScenes), minLoadTimer);
+
+            if (newScenes.Count > 0)
+            {
+                Scene firstLoaded = SceneManager.GetSceneByName(newScenes.First().sceneName);
+                if (firstLoaded.isLoaded)
+                {
+                    SceneManager.SetActiveScene(firstLoaded);
+                }
+            }
+
             await UniTaskUtils.Interpolate(ExitTransition, _config.SceneSwitchFadeDuration, ignoreTimeScale: true);
         }
 
